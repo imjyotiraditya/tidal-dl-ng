@@ -34,12 +34,17 @@ from tidal_dl_ng.helper.tidal import (
 from tidal_dl_ng.metadata import Metadata
 
 try:
-    import qdarktheme
     from PySide6 import QtCore, QtGui, QtWidgets
 except ImportError as e:
     print(e)
-    print("Qt dependencies missing. Cannot start GUI. Please execute: 'pip install pyside6 pyqtdarktheme'")
+    print("Qt dependencies missing. Cannot start GUI. Please execute: 'pip install pyside6'")
     sys.exit(1)
+
+try:
+    import qdarktheme
+    HAS_DARK_THEME = True
+except ImportError:
+    HAS_DARK_THEME = False
 
 import coloredlogs.converter
 from rich.progress import Progress
@@ -117,6 +122,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.init_tidal(tidal)
 
         logger_gui.debug("All setup.")
+
+        if not HAS_DARK_THEME:
+            logger_gui.info("Dark theme is not available. Using default theme.")
+
 
     def init_tidal(self, tidal: Tidal = None):
         result: bool = False
@@ -1007,13 +1016,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 # TODO: Comment with Google Docstrings.
 def gui_activate(tidal: Tidal | None = None):
-    # Set dark theme and create QT app.
-    qdarktheme.enable_hi_dpi()
+    # Create QT app
     app = QtWidgets.QApplication(sys.argv)
-    # Fix for Windows: Tooltips have bright font color
-    # https://github.com/5yutan5/PyQtDarkTheme/issues/239
-    # qdarktheme.setup_theme()
-    qdarktheme.setup_theme(additional_qss="QToolTip { border: 0px; }")
+
+    if HAS_DARK_THEME:
+        # Set dark theme if available
+        qdarktheme.enable_hi_dpi()
+        # Fix for Windows: Tooltips have bright font color
+        # https://github.com/5yutan5/PyQtDarkTheme/issues/239
+        qdarktheme.setup_theme(additional_qss="QToolTip { border: 0px; }")
+    else:
+        # If dark theme is not available, we can set a basic style
+        app.setStyle("Fusion")
 
     # Create icon object and apply it to app window.
     pixmap: QtGui.QPixmap = QtGui.QPixmap("tidal_dl_ng/ui/icon.png")
